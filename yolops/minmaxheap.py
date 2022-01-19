@@ -144,28 +144,14 @@ def insert(array, k, size):
 
 def minmaxheapproperty(array, size):
     for i, k in enumerate(array[:size]):
-        if level(i) % 2 == 0:  # min level
-            # check children to be larger
-            for j in range(2 * i + 1, min(2 * i + 3, size)):
-                if array[j] < k:
-                    print(array, j, i, array[j], array[i], level(i))
-                    return False
-            # check grand children to be larger
-            for j in range(4 * i + 3, min(4 * i + 7, size)):
-                if array[j] < k:
-                    print(array, j, i, array[j], array[i], level(i))
-                    return False
-        else:
-            # check children to be smaller
-            for j in range(2 * i + 1, min(2 * i + 3, size)):
-                if array[j] > k:
-                    print(array, j, i, array[j], array[i], level(i))
-                    return False
-            # check grand children to be smaller
-            for j in range(4 * i + 3, min(4 * i + 7, size)):
-                if array[j] > k:
-                    print(array, j, i, array[j], array[i], level(i))
-                    return False
+        # check children and grandchildren to be larger (min level) or smaller (max level)
+        cmp = comparer(i)
+        children = range(2 * i + 1, min(2 * i + 3, size))
+        grandchildren = range(4 * i + 3, min(4 * i + 7, size))
+        for j in [*children, *grandchildren]:
+            if cmp(array[j], k):
+                print(array, j, i, array[j], array[i], level(i))
+                return False
 
     return True
 
