@@ -58,30 +58,27 @@ def comparer(i):
 
 
 def trickledown(array, i, size):
-    trickledownminmax(array, i, size, comparer(i))
+    cmp = comparer(i)
 
-
-def trickledownminmax(array, i, size, cmp):
-    if size > i * 2 + 1:  # i has children
-        m = i * 2 + 1
-        if i * 2 + 2 < size and cmp(array[i*2+2], array[m]):
-            m = i*2+2
+    m = i * 2 + 1
+    while m < size:  # array[i] has children
+        if m + 1 < size and cmp(array[m+1], array[m]):
+            m += 1
         child = True
         for j in range(i*4+3, min(i*4+7, size)):
             if cmp(array[j], array[m]):
                 m = j
                 child = False
 
+        if cmp(array[m], array[i]):
+            array[i], array[m] = array[m], array[i]
+
         if child:
-            if cmp(array[m], array[i]):
-                array[i], array[m] = array[m], array[i]
-        else:
-            if cmp(array[m], array[i]):
-                if cmp(array[m], array[i]):
-                    array[m], array[i] = array[i], array[m]
-                if cmp(array[(m-1) // 2], array[m]):
-                    array[m], array[(m-1)//2] = array[(m-1)//2], array[m]
-                trickledownminmax(array, m, size, cmp)
+            break
+
+        if cmp(array[(m-1) // 2], array[m]):
+            array[m], array[(m-1)//2] = array[(m-1)//2], array[m]
+        i, m = m, m * 2 + 1
 
 
 def bubbleup(array, i):
