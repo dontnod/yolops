@@ -50,57 +50,38 @@ def level(i):
     return (i+1).bit_length() - 1
 
 
-def trickledown(array, i, size):
+def comparer(i):
     if level(i) % 2 == 0:  # min level
-        trickledownmin(array, i, size)
+        return lambda x, y: x < y
     else:
-        trickledownmax(array, i, size)
+        return lambda x, y: x > y
 
 
-def trickledownmin(array, i, size):
+def trickledown(array, i, size):
+    trickledownminmax(array, i, size, comparer(i))
+
+
+def trickledownminmax(array, i, size, cmp):
     if size > i * 2 + 1:  # i has children
         m = i * 2 + 1
-        if i * 2 + 2 < size and array[i*2+2] < array[m]:
+        if i * 2 + 2 < size and cmp(array[i*2+2], array[m]):
             m = i*2+2
         child = True
         for j in range(i*4+3, min(i*4+7, size)):
-            if array[j] < array[m]:
+            if cmp(array[j], array[m]):
                 m = j
                 child = False
 
         if child:
-            if array[m] < array[i]:
+            if cmp(array[m], array[i]):
                 array[i], array[m] = array[m], array[i]
         else:
-            if array[m] < array[i]:
-                if array[m] < array[i]:
+            if cmp(array[m], array[i]):
+                if cmp(array[m], array[i]):
                     array[m], array[i] = array[i], array[m]
-                if array[m] > array[(m-1) // 2]:
+                if cmp(array[(m-1) // 2], array[m]):
                     array[m], array[(m-1)//2] = array[(m-1)//2], array[m]
-                trickledownmin(array, m, size)
-
-
-def trickledownmax(array, i, size):
-    if size > i * 2 + 1:  # i has children
-        m = i * 2 + 1
-        if i * 2 + 2 < size and array[i*2+2] > array[m]:
-            m = i*2+2
-        child = True
-        for j in range(i*4+3, min(i*4+7, size)):
-            if array[j] > array[m]:
-                m = j
-                child = False
-
-        if child:
-            if array[m] > array[i]:
-                array[i], array[m] = array[m], array[i]
-        else:
-            if array[m] > array[i]:
-                if array[m] > array[i]:
-                    array[m], array[i] = array[i], array[m]
-                if array[m] < array[(m-1) // 2]:
-                    array[m], array[(m-1)//2] = array[(m-1)//2], array[m]
-                trickledownmax(array, m, size)
+                trickledownminmax(array, m, size, cmp)
 
 
 def bubbleup(array, i):
