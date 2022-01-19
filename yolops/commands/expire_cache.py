@@ -2,7 +2,8 @@ from os import scandir, unlink
 from math import log10
 from psutil import disk_usage
 from datetime import datetime
-from enum import Enum
+from enum import Enum, auto
+from random import random
 import click
 
 from yolops.minmaxheap import MinMaxHeap
@@ -30,20 +31,16 @@ def unit(size: int):
     mantissa = size / pow(1000, exp)
     return f'{mantissa:1.3g}{unit}B'
 
-class Policy(Enum):
-    def __str__(self): return self.name
-    LRU = 0
-    MRU = 1
-    RANDOM = 2
-
 @click.command()
 @click.option('-f', '--ensure-free', 'ensure_free', type=StorageUnit(), default=0,
               help='ensure at least SIZE bytes are available on the filesystem')
-@click.option('--lru', 'policy', flag_value=Policy.LRU, default=True, help='remove oldest files first')
+@click.option('--lru',    'policy', flag_value='LRU',    help='remove oldest files (default)', default=True)
+@click.option('--mru',    'policy', flag_value='MRU',    help='remove newest files')
+@click.option('--random', 'policy', flag_value='random', help='remove files randomly')
 @click.option('-v', '--verbose', is_flag=True, help='verbose output')
 @click.option('-n', '--dry-run', is_flag=True, help='perform a trial run with no changes made')
 @click.argument('directory', type=click.Path(file_okay=False, dir_okay=True, resolve_path=True))
-def expire_cache(directory: str, ensure_free: int, verbose: bool, dry_run: bool, policy: Policy):
+def expire_cache(directory: str, ensure_free: int, verbose: bool, dry_run: bool, policy: str):
 
     click.echo(f'Expiring files in {directory} (policy: {policy})')
 
@@ -57,16 +54,25 @@ def expire_cache(directory: str, ensure_free: int, verbose: bool, dry_run: bool,
 
     excess_size = ensure_free - free
 
+    if policy == 'MRU':
+        make_key = lambda stat: -stat.st_mtime
+    elif policy == 'random':
+        make_key = lambda stat: random()
+    else: # 'LRU'
+        make_key = lambda stat: stat.st_mtime
+
     # Scan all files into a min-max heap, sorted by modification date (oldest first)
     heap = MinMaxHeap()
     tracked_size = 0
     discovered_size = 0
+    discovered_count = 0
     for entry in scantree(directory):
         try:
             stat = entry.stat()
-            heap.insert((stat.st_mtime, stat.st_size, entry.path))
+            heap.insert((make_key(stat), stat.st_size, entry.path))
             tracked_size += stat.st_size
             discovered_size += stat.st_size
+            discovered_count += 1
         except FileNotFoundError:
             pass
         # If we’re tracking more data than we need to clean, we can ignore the most recent files
@@ -74,18 +80,24 @@ def expire_cache(directory: str, ensure_free: int, verbose: bool, dry_run: bool,
             _, size, _ = heap.popmax()
             tracked_size -= size
 
-    click.echo(f'Found {unit(discovered_size)} of data ({len(heap)} files)')
+    click.echo(f'Found {unit(discovered_size)} of data ({discovered_count} files)')
 
     # Delete files until we reach the threshold
     freed_size = 0
-    freed = 0
+    freed_count = 0
     while freed_size < excess_size and len(heap):
-        mtime, size, path = heap.popmin()
+        key, size, path = heap.popmin()
         if verbose:
-            click.echo(f'Deleting file: {path} ({datetime.fromtimestamp(mtime)}, {unit(size)})')
+            if policy == 'MRU':
+                info = datetime.fromtimestamp(-key)
+            if policy == 'random':
+                info = 'random'
+            else: # Policy.LRU
+                info = datetime.fromtimestamp(key)
+            click.echo(f'Deleting file: {path} ({info}, {unit(size)})')
         if not dry_run:
             unlink(path)
         freed_size += size
-        freed += 1
+        freed_count += 1
 
-    click.echo(f'Freed {unit(freed_size)} of data ({freed} files)')
+    click.echo(f'Freed {unit(freed_size)} of data ({freed_count} files)')
