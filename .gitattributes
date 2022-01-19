@@ -1,0 +1,6 @@
+# Everything is text unless it isn’t
+* text=auto
+
+# This is really text
+*.py text
+
