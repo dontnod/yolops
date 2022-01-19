@@ -82,36 +82,20 @@ def trickledown(array, i, size):
 
 
 def bubbleup(array, i):
-    if level(i) % 2 == 0:  # min level
-        if i > 0 and array[i] > array[(i-1) // 2]:
-            array[i], array[(i-1) // 2] = array[(i-1)//2], array[i]
-            bubbleupmax(array, (i-1)//2)
-        else:
-            bubbleupmin(array, i)
-    else:  # max level
-        if i > 0 and array[i] < array[(i-1) // 2]:
-            array[i], array[(i-1) // 2] = array[(i-1) // 2], array[i]
-            bubbleupmin(array, (i-1)//2)
-        else:
-            bubbleupmax(array, i)
+    cmp = comparer(i)
+    if i > 0:
+        m = (i - 1) // 2
+        if cmp(array[m], array[i]):
+            array[i], array[m] = array[m], array[i]
+            i = m
+            cmp = comparer(i)
 
-
-def bubbleupmin(array, i):
     while i > 2:
-        if array[i] < array[(i-3) // 4]:
-            array[i], array[(i-3) // 4] = array[(i-3) // 4], array[i]
-            i = (i-3) // 4
-        else:
+        m = (i - 3) // 4
+        if cmp(array[m], array[i]):
             return
-
-
-def bubbleupmax(array, i):
-    while i > 2:
-        if array[i] > array[(i-3) // 4]:
-            array[i], array[(i-3) // 4] = array[(i-3) // 4], array[i]
-            i = (i-3) // 4
-        else:
-            return
+        array[i], array[m] = array[m], array[i]
+        i = m
 
 
 def peekmin(array, size):
