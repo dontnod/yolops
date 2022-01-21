@@ -6,6 +6,7 @@ from enum import Enum, auto
 from random import random
 import click
 
+from yolops.log import verbosity_params, verbosity, info, debug
 from yolops.minmaxheap import MinMaxHeap
 from yolops.parsing import StorageUnit
 
@@ -54,30 +55,30 @@ def unit(size: int):
 
 @click.command()
 @click.option('-d', '--delete', 'todelete_size', type=StorageUnit(), default=-1,
-              help='delete SIZE bytes of data')
+              help='Delete SIZE bytes of data')
 @click.option('-f', '--ensure-free', type=StorageUnit(), default=-1,
-              help='ensure at least SIZE bytes are available on the filesystem')
-@click.option('-m', '--keep', 'tokeep_size', type=StorageUnit(), default=-1,
-              help='ensure directory uses at most SIZE bytes')
-@click.option('--lru',    'policy', flag_value='LRU',    help='remove oldest files (default)', default=True)
-@click.option('--mru',    'policy', flag_value='MRU',    help='remove newest files')
-@click.option('--random', 'policy', flag_value='random', help='remove files randomly')
-@click.option('-v', '--verbose', is_flag=True, help='verbose output')
-@click.option('-n', '--dry-run', is_flag=True, help='perform a trial run with no changes made')
+              help='Ensure at least SIZE bytes are available on the filesystem')
+@click.option('-k', '--keep', 'tokeep_size', type=StorageUnit(), default=-1,
+              help='Ensure directory uses at most SIZE bytes')
+@click.option('--lru',    'policy', flag_value='LRU',    help='Remove oldest files (default)', default=True)
+@click.option('--mru',    'policy', flag_value='MRU',    help='Remove newest files')
+@click.option('--random', 'policy', flag_value='random', help='Remove files randomly')
+@click.option('-n', '--dry-run', is_flag=True, help='Perform a trial run with no changes made')
 @click.argument('directory', type=click.Path(file_okay=False, dir_okay=True, resolve_path=True))
-def expire_cache(directory: str, todelete_size: int,  ensure_free: int, tokeep_size: int,
-                 verbose: bool, dry_run: bool, policy: str):
+@verbosity_params
+def expire_cache(directory: str, todelete_size: int, ensure_free: int, tokeep_size: int,
+                 dry_run: bool, policy: str):
 
     # Check argument consistency
     if len([x for x in [tokeep_size, ensure_free, todelete_size] if x >= 0]) != 1:
         raise click.UsageError('You must specify one of --delete, --ensure-free, or --keep')
 
-    click.echo(f'Expiring files in {directory} (policy: {policy})')
+    info(f'Expiring files in {directory} (policy: {policy})')
 
     # Gather stats about the filesystem
     diskinfo = disk_usage(path=directory)
     total, free, used = diskinfo.total, diskinfo.free, diskinfo.used
-    click.echo(f'Filesystem size is {unit(total)} total, {unit(used)} used, {unit(free)} free')
+    info(f'Filesystem size is {unit(total)} total, {unit(used)} used, {unit(free)} free')
 
     # Handle --ensure-free: it’s the same as --delete except the actual value
     # is computed from the filesystem stats
@@ -86,7 +87,7 @@ def expire_cache(directory: str, todelete_size: int,  ensure_free: int, tokeep_s
         tokeep_size = -1
 
     if todelete_size < 0 and tokeep_size < 0:
-        click.echo('Nothing to do!')
+        info('Nothing to do!')
         return True
 
     # Scan all files into a min-max heap, sorted by modification date (oldest first)
@@ -105,8 +106,7 @@ def expire_cache(directory: str, todelete_size: int,  ensure_free: int, tokeep_s
         # If we need to keep at most X bytes and we already found more than that, we can start deleting
         while tokeep_size >= 0 and tracked_size > tokeep_size:
             _, size, path = heap.popmin()
-            if verbose:
-                click.echo(f'Deleting file: {path} ({unit(size)})')
+            debug(f'Deleting file: {path} ({unit(size)})')
             if not dry_run:
                 unlink(path)
             tracked_size -= size
@@ -118,16 +118,15 @@ def expire_cache(directory: str, todelete_size: int,  ensure_free: int, tokeep_s
             _, size, _ = heap.popmax()
             tracked_size -= size
 
-    click.echo(f'Scanned {discovered_count} files ({unit(discovered_size)})')
+    info(f'Scanned {discovered_count} files ({unit(discovered_size)})')
 
     # Delete files until we reach the threshold
     while freed_size < todelete_size and len(heap):
         key, size, path = heap.popmin()
-        if verbose:
-            click.echo(f'Deleting file: {path} ({unit(size)})')
+        debug(f'Deleting file: {path} ({unit(size)})')
         if not dry_run:
             unlink(path)
         freed_size += size
         freed_count += 1
 
-    click.echo(f'Deleted {freed_count} files ({unit(freed_size)})')
+    info(f'Deleted {freed_count} files ({unit(freed_size)})')
