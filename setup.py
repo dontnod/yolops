@@ -22,7 +22,6 @@ setup_info = dict(
     packages = setuptools.find_packages(include=['yolops', 'yolops.*']),
 
     install_requires = [
-        'psutil',
         'click',
     ],
 

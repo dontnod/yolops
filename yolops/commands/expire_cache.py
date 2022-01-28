@@ -1,6 +1,6 @@
 from os import scandir, unlink
 from math import log10
-from psutil import disk_usage
+from shutil import disk_usage
 from datetime import datetime
 from enum import Enum, auto
 from random import random
