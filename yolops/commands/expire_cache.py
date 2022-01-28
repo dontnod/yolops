@@ -15,11 +15,14 @@ def scantree(directory):
     """
     Scan a directory tree recursively, returning entries for files
     """
-    for entry in scandir(directory):
-        if entry.is_dir(follow_symlinks=False):
-            yield from scantree(entry.path)
-        else:
-            yield entry
+    try:
+        for entry in scandir(directory):
+            if entry.is_dir(follow_symlinks=False):
+                yield from scantree(entry.path)
+            else:
+                yield entry
+    except PermissionError:
+        pass
 
 
 class Scanner(object):
