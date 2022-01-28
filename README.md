@@ -5,15 +5,18 @@
 This command helps clean up a cache directory. It can be used for tasks such as:
 
  - cleaning up a proxy cache directory (Apache, Perforce, …)
- - expiring Unreal Engine shared DDC data
+ - expiring Unreal Engine cache date (shared DDC, cooked data, packages…)
 
 ```
 yolops expire-cache [OPTIONS] <directories…>
 ```
 
+A [min-max heap](https://en.wikipedia.org/wiki/Min-max_heap) is used to keep
+memory usage as low as possible, even when scanning millions of files.
+
 ### Options
 
-Directories are scanned recursively and files delete based on the given policy:
+Directories are scanned recursively and files deleted based on the given policy:
 
  - `--lru`: LRU, or *least recently used*; delete older files first (default behaviour)
  - `--mru`: MRU, or *most recently used*; delete newer files first
@@ -37,6 +40,10 @@ Other useful options:
 Clean up old files until at least 10 GiB of data are available on the filesystem:
 
     yolops expire-cache --ensure-free 10GiB /srv/p4proxy
+
+Ensure Unreal Engine cooked data does not exceed 50 GiB:
+
+    yolops expire-cache --keep 50GiB */*/Saved/Cooked
 
 Attempt to free 200 MiB of data from various directories:
 
