@@ -1,8 +1,9 @@
-from os import scandir, unlink
+from os import scandir, unlink, lstat
 from math import log10
 from shutil import disk_usage
 from datetime import datetime
 from enum import Enum, auto
+from typing import List
 from random import random
 import click
 
@@ -35,13 +36,14 @@ class Scanner(object):
         else: # 'LRU'
             self._make_key = lambda stat: stat.st_mtime
 
-    def scan(self, directory: str):
-        for entry in scantree(directory):
-            try:
-                stat = entry.stat()
-                yield self._make_key(stat), stat.st_size, entry.path
-            except FileNotFoundError:
-                pass
+    def scan(self, directories: List[str]):
+        for directory in directories:
+            for entry in scantree(directory):
+                try:
+                    stat = entry.stat()
+                    yield self._make_key(stat), stat.st_size, entry.path
+                except FileNotFoundError:
+                    pass
 
 
 def unit(size: int):
@@ -67,21 +69,28 @@ def unit(size: int):
 @click.option('--mru',    'policy', flag_value='MRU',    help='Remove newest files')
 @click.option('--random', 'policy', flag_value='random', help='Remove files randomly')
 @click.option('-n', '--dry-run', is_flag=True, help='Perform a trial run with no changes made')
-@click.argument('directory', type=click.Path(file_okay=False, dir_okay=True, resolve_path=True))
+@click.argument('directories', nargs=-1, required=True,
+                type=click.Path(file_okay=False, dir_okay=True, resolve_path=True, exists=True))
 @verbosity_params
-def expire_cache(directory: str, todelete_size: int, ensure_free: int, tokeep_size: int,
+def expire_cache(directories: List[str], todelete_size: int, ensure_free: int, tokeep_size: int,
                  dry_run: bool, policy: str):
 
     # Check argument consistency
     if len([x for x in [tokeep_size, ensure_free, todelete_size] if x >= 0]) != 1:
         raise click.UsageError('You must specify one of --delete, --ensure-free, or --keep')
 
-    info(f'Expiring files in {directory} (policy: {policy})')
+    fs_count = len(set([lstat(d).st_dev for d in directories]))
+    if ensure_free >= 0 and fs_count != 1:
+        raise click.UsageError('Targets must be on the same filesystem when using --ensure-free')
+
+    targets = ' '.join(directories)
+    info(f'Expiring files in {targets} (policy: {policy})')
 
     # Gather stats about the filesystem
-    diskinfo = disk_usage(path=directory)
-    total, free, used = diskinfo.total, diskinfo.free, diskinfo.used
-    info(f'Filesystem size is {unit(total)} total, {unit(used)} used, {unit(free)} free')
+    if fs_count == 1:
+        diskinfo = disk_usage(path=directories[0])
+        total, free, used = diskinfo.total, diskinfo.free, diskinfo.used
+        info(f'Filesystem size is {unit(total)} total, {unit(used)} used, {unit(free)} free')
 
     # Handle --ensure-free: it’s the same as --delete except the actual value
     # is computed from the filesystem stats
@@ -101,7 +110,7 @@ def expire_cache(directory: str, todelete_size: int, ensure_free: int, tokeep_si
     discovered_count = 0
     freed_size = 0
     freed_count = 0
-    for key, size, path in scanner.scan(directory):
+    for key, size, path in scanner.scan(directories):
         heap.insert((key, size, path))
         tracked_size += size
         discovered_size += size
