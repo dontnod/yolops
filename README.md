@@ -4,23 +4,40 @@
 
 This command helps clean up a cache directory. It can be used for tasks such as:
 
- - cleaning up a Perforce proxy cache directory
- - expiring Unreal Engine shared DDC
+ - cleaning up a proxy cache directory (Apache, Perforce, …)
+ - expiring Unreal Engine shared DDC data
 
 ```
-yolops expire-cache [OPTIONS] <directory>
+yolops expire-cache [OPTIONS] <directories…>
 ```
 
-Scan a directory recursively and delete files based on the given policy:
+### Options
+
+Directories are scanned recursively and files delete based on the given policy:
 
  - `--lru`: LRU, or *least recently used*; delete older files first (default behaviour)
  - `--mru`: MRU, or *most recently used*; delete newer files first
- - `--random`: delete files at random
+ - `--random`: delete files randomly
 
 Operating mode is chosen with one of the following options:
 
  - `--delete <size>`: delete `size` bytes of data
- - `--keep <size>`: keep at most `size` bytes of data, effectively limiting the total size of the directory
+ - `--keep <size>`: keep at most `size` bytes of data, effectively limiting the total size of the directories
  - `--ensure-free <size>`: delete files until at least `size` bytes of data are available on the filesystem
 
 Sizes can be specified in bytes, or with any common unit, eg: `10G`, `1.5T`, `128MiB`…
+
+Other useful options:
+
+ - `-v`, `--verbose`: verbose output
+ - `-n`, `--dry-run`: do not actually delete files (useful with `-v`)
+
+### Examples
+
+Clean up old files until at least 10 GiB of data are available on the filesystem:
+
+    yolops expire-cache --ensure-free 10GiB /srv/p4proxy
+
+Attempt to free 200 MiB of data from various directories:
+
+    yolops expire-cache --delete 200MiB */*/Intermediate
