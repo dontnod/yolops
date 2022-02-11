@@ -7,7 +7,7 @@ import setuptools
 setup_info = dict(
 
     name = 'yolops',
-    version = '0.0',
+    version = '0.0.1',
     description = 'Multipurpose devops tool',
     long_description = '' +
         'Yolops is a devops toolbox.'
