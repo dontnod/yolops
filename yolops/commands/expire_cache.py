@@ -1,5 +1,4 @@
 from os import scandir, unlink, lstat
-from math import log10
 from shutil import disk_usage
 from datetime import datetime
 from enum import Enum, auto
@@ -51,6 +50,7 @@ def unit(size: int):
     Format a number of bytes into a human-readable number with the appropriate unit,
     e.g. KB, MB, TB etc.
     """
+    from math import log10
     if size <= 0:
         return f'{size}B'
     exp = int(log10(size * 1.1) / 3)
