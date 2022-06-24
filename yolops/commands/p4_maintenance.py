@@ -1,12 +1,12 @@
 from glob import glob
 from os import path, unlink
 from pprint import pprint
-from shutil import copyfileobj
 from subprocess import Popen, PIPE, DEVNULL
 import click
 import gzip
 import re
 
+from yolops.fsutils import gzip_file
 from yolops.log import verbosity_params, verbosity, info, debug
 
 class P4Server():
@@ -91,10 +91,7 @@ def p4_maintenance(server: str, skip_journals: -1, keep_journals: -1, dry_run: b
                     compressed += 1
                     debug(f'Compressing journal {j}...')
                     if not dry_run:
-                        with open(j, 'rb') as fin:
-                            with gzip.open(f'{j}.gz', 'wb') as fout:
-                                copyfileobj(fin, fout)
-                        unlink(j)
+                        gzip_file(j, f'{j}.gz')
             else:
                 deleted += 1
                 debug(f'Deleting journal {j}...')
