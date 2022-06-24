@@ -4,10 +4,12 @@ import click
 
 from yolops.log import verbosity_params
 from yolops.commands.expire_cache import expire_cache
+from yolops.commands.p4_maintenance import p4_maintenance
 
 
 _commands = {
     'expire-cache': expire_cache,
+    'p4-maintenance': p4_maintenance,
 }
 
 
