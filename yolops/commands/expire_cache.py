@@ -5,21 +5,6 @@ from yolops.log import verbosity_params, info, debug
 from yolops.parsing import StorageUnit
 
 
-def scantree(directory):
-    """
-    Scan a directory tree recursively, returning entries for files
-    """
-    from os import scandir
-    try:
-        for entry in scandir(directory):
-            if entry.is_dir(follow_symlinks=False):
-                yield from scantree(entry.path)
-            else:
-                yield entry
-    except PermissionError:
-        pass
-
-
 class Scanner(object):
 
     def __init__(self, policy: str):
@@ -32,8 +17,9 @@ class Scanner(object):
             self._make_key = lambda stat: stat.st_mtime
 
     def scan(self, directories: List[str]):
+        from yolops.fsutils import scan_tree
         for directory in directories:
-            for entry in scantree(directory):
+            for entry in scan_tree(directory):
                 try:
                     stat = entry.stat()
                     yield self._make_key(stat), stat.st_size, entry.path
