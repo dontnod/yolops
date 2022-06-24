@@ -12,9 +12,10 @@ class P4Server():
         for item in config:
             k, v = item.split('=')[0:2]
             self.config[k] = v
-        self._read_config()
+        if t in ['p4d']:
+            self._read_p4d_config()
 
-    def _read_config(self):
+    def _read_p4d_config(self):
         """
         Parse the output of ‘p4d -cshow’ to populate the Perforce server configuration
         """
