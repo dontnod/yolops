@@ -1,14 +1,7 @@
-from os import scandir, unlink, lstat
-from math import log10
-from shutil import disk_usage
-from datetime import datetime
-from enum import Enum, auto
 from typing import List
-from random import random
 import click
 
-from yolops.log import verbosity_params, verbosity, info, debug
-from yolops.minmaxheap import MinMaxHeap
+from yolops.log import verbosity_params, info, debug
 from yolops.parsing import StorageUnit
 
 
@@ -16,6 +9,7 @@ def scantree(directory):
     """
     Scan a directory tree recursively, returning entries for files
     """
+    from os import scandir
     try:
         for entry in scandir(directory):
             if entry.is_dir(follow_symlinks=False):
@@ -32,6 +26,7 @@ class Scanner(object):
         if policy == 'MRU':
             self._make_key = lambda stat: -stat.st_mtime
         elif policy == 'random':
+            from random import random
             self._make_key = lambda stat: random()
         else: # 'LRU'
             self._make_key = lambda stat: stat.st_mtime
@@ -51,6 +46,7 @@ def unit(size: int):
     Format a number of bytes into a human-readable number with the appropriate unit,
     e.g. KB, MB, TB etc.
     """
+    from math import log10
     if size <= 0:
         return f'{size}B'
     exp = int(log10(size * 1.1) / 3)
@@ -74,6 +70,10 @@ def unit(size: int):
 @verbosity_params
 def expire_cache(directories: List[str], todelete_size: int, ensure_free: int, tokeep_size: int,
                  dry_run: bool, policy: str):
+
+    from os import unlink, lstat
+    from shutil import disk_usage
+    from yolops.minmaxheap import MinMaxHeap
 
     # Check argument consistency
     if len([x for x in [tokeep_size, ensure_free, todelete_size] if x >= 0]) != 1:
