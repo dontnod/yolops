@@ -21,7 +21,7 @@ class P4Server():
         """
         try:
             parse = re.compile(f'(any|{self.name}): ([^=]*) = (.*)')
-            process = Popen(['p4d', '-r', self.config['root'], '-cshow'],
+            process = Popen(['/usr/sbin/p4d', '-r', self.config['root'], '-cshow'],
                             stdout=PIPE, stderr=DEVNULL, text=True, close_fds=True)
             for line in iter(process.stdout.readline, ''):
                 m = parse.match(line)
@@ -38,19 +38,18 @@ class P4Server():
         Parse the output of ‘p4dctl list’ for a list of all Perforce servers
         """
         try:
-            process = Popen(['p4dctl', 'list'],
+            process = Popen(['/usr/bin/p4dctl', 'list'],
                             stdout=PIPE, stderr=DEVNULL, text=True, close_fds=True)
-            for line in iter(process.stdout.readline, ''):
-                data = re.split(' +', line.strip())
-                yield P4Server(data[0], data[2], data[3:])
-
-            process.wait()
-            if process.returncode != 0:
-                raise RuntimeError
         except FileNotFoundError:
-            pass
-        except:
-            raise
+            return
+
+        for line in iter(process.stdout.readline, ''):
+            data = re.split(' +', line.strip())
+            yield P4Server(data[0], data[2], data[3:])
+
+        process.wait()
+        if process.returncode != 0:
+            raise RuntimeError
 
     def Journals(self):
         """
