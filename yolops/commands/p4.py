@@ -47,6 +47,8 @@ class P4Server():
             process.wait()
             if process.returncode != 0:
                 raise RuntimeError
+        except FileNotFoundError:
+            pass
         except:
             raise
 
@@ -70,6 +72,13 @@ class P4Server():
 @verbosity_params
 def p4_group():
     pass
+
+
+@p4_group.command()
+@verbosity_params
+def serverlist():
+    for s in P4Server.Enumerate():
+        print(f'Server: {x.name} type: {x.type}')
 
 
 @p4_group.command()
