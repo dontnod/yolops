@@ -66,14 +66,20 @@ class P4Server():
             yield from sorted(jlist, key=lambda x: [-int(s) if s.isnumeric() else 0 for s in x.split('.')])
 
 
-@click.command()
+@click.group()
+@verbosity_params
+def p4_group():
+    pass
+
+
+@p4_group.command()
 @click.option('-s', '--server', type=str, default='all',
               help='Server to process')
 @click.option('--skip-journals', type=int, default=1, help='Number of journals that are not compressed (default: 1)')
 @click.option('--keep-journals', type=int, default=-1, help='Number of journals to keep (default: all)')
 @click.option('-n', '--dry-run', is_flag=True, help='Perform a trial run with no changes made')
 @verbosity_params
-def p4_maintenance(server: str, skip_journals: -1, keep_journals: -1, dry_run: bool):
+def tidy(server: str, skip_journals: -1, keep_journals: -1, dry_run: bool):
 
     from os import unlink
     from yolops.fsutils import gzip_file
