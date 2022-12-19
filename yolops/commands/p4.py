@@ -77,7 +77,7 @@ def p4_group():
 @verbosity_params
 def serverlist():
     for s in P4Server.Enumerate():
-        print(f'Server: {x.name} type: {x.type}')
+        print(f'Server: {s.name} type: {s.type}')
 
 
 @p4_group.command()
