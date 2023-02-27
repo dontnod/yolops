@@ -123,7 +123,10 @@ def expire_cache(directories: List[str], todelete_size: int, ensure_free: int, t
         key, size, path = heap.popmin()
         debug(f'Deleting file: {path} ({unit(size)})')
         if not dry_run:
-            unlink(path)
+            try:
+                unlink(path)
+            except FileNotFoundError:
+                info('FileNotFound %s', path)
         freed_size += size
         freed_count += 1
 
